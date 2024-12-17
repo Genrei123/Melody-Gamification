@@ -23,7 +23,9 @@ import MusicNoteIcon from '@mui/icons-material/MusicNote';
 import { NOTES } from './constants';
 import { auth } from './firebase';
 import axios from 'axios';
+
 const BACKEND_URL = 'http://localhost/melody-backend/save_compositions.php';
+
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(3),
   textAlign: 'center',
@@ -69,7 +71,7 @@ const CreateComposition = () => {
 const handleSaveComposition = async () => {
   try {
     const response = await axios.post(
-      BACKEND_URL, // Use the defined URL here
+      BACKEND_URL, 
       {
         compositionName,
         composition: composition.join(','),
@@ -85,22 +87,20 @@ const handleSaveComposition = async () => {
 
     // Handle successful response
     if (response.data.status === 'success') {
+      // Show success message
       setMessage('Composition saved successfully!');
       setSeverity('success');
       
-      // Optional: You might want to do something with the new composition ID
-      console.log('New Composition ID:', response.data.compositionId);
+      // Navigate back to homepage after a short delay
+      setTimeout(() => {
+        navigate('/');
+      }, 1000); // 1 second delay to show the success message
     } else {
       setMessage(response.data.message || 'Error saving composition');
       setSeverity('error');
     }
   } catch (error) {
-    console.error('FULL ERROR DETAILS:', {
-      message: error.message,
-      name: error.name,
-      code: error.code,
-      config: error.config
-    });
+    console.error('FULL ERROR DETAILS:', error);
 
     setMessage(`Connection Error: ${error.message}`);
     setSeverity('error');
