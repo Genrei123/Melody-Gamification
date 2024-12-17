@@ -1,49 +1,65 @@
+// src/Signup.js
 import React, { useState } from 'react';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth } from './firebase';
-import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
+import { Link, useNavigate } from 'react-router-dom';
 
-const Signup = ({ onSignup, switchToLogin }) => {
+const Signup = () => {
+  const [username, setUsername] = useState(''); // New state for username
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
 
-  const handleSubmit = async (e) => {
+  const navigate = useNavigate(); // To redirect after signup
+
+  const handleSignup = async (e) => {
     e.preventDefault();
-    if (password !== confirmPassword) {
-      alert("Passwords do not match!");
-      return;
-    }
     try {
+      // Create user with email and password
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      await sendEmailVerification(userCredential.user);
-      alert("Verification email sent! Please check your inbox.");
-      onSignup();
+      
+      // Update the user's display name
+      await updateProfile(userCredential.user, {
+        displayName: username
+      });
+
+      // Redirect to homepage after successful signup
+      navigate('/');
     } catch (error) {
-      console.error("Error signing up:", error);
+      console.error("Signup Error:", error);
       alert(error.message);
     }
   };
 
   return (
-    <div>
+    <div className="auth-container">
       <h2>Sign Up</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Email:</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        </div>
-        <div>
-          <label>Password:</label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        </div>
-        <div>
-          <label>Confirm Password:</label>
-          <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
-        </div>
+      <form onSubmit={handleSignup}>
+        <input
+          type="text"
+          placeholder="Username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          required
+        /><br/>
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        /><br/>
+        <input
+          type="password"
+          placeholder="Password (6+ characters)"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        /><br/>
         <button type="submit">Sign Up</button>
       </form>
       <p>
-        Already have an account? <button onClick={switchToLogin}>Login</button>
+        Already have an account?{' '}
+        <Link to="/login">Login</Link>
       </p>
     </div>
   );
