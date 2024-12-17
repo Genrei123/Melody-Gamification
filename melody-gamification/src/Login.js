@@ -42,13 +42,12 @@ const Login = ({ onLogin, switchToSignup }) => {
     e.preventDefault();
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      onLogin();
+      onLogin(); // Call the onLogin function passed as a prop
     } catch (error) {
       console.error("Error logging in:", error);
       alert(error.message);
     }
   };
-
   const handleGoogleSignIn = async () => {
     try {
       await signInWithPopup(auth, googleProvider);
