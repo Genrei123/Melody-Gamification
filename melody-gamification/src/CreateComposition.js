@@ -24,7 +24,7 @@ import { NOTES } from './constants';
 import { auth } from './firebase';
 import axios from 'axios';
 
-const BACKEND_URL = 'http://localhost/melody-backend/save_compositions.php';
+const BACKEND_URL = 'https://aliceblue-marten-295174.hostingersite.com/save_compositions.php';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(3),

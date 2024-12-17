@@ -1,3 +1,4 @@
+// src/GameController.js
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { auth } from './firebase';
@@ -34,6 +35,10 @@ const NoteButton = styled(Button, {
   margin: theme.spacing(1),
   minWidth: '100px',
   fontWeight: isCurrent ? 'bold' : 'normal',
+  transition: 'background-color 0.2s, transform 0.1s',
+  '&:active': {
+    transform: 'scale(0.95)',
+  },
 }));
 
 const GameController = () => {
@@ -43,41 +48,24 @@ const GameController = () => {
 
   const { musicName, uploaderName, notes } = location.state || {};
 
-  const [port, setPort] = useState(null);
-  const [writer, setWriter] = useState(null);
   const [gameStarted, setGameStarted] = useState(false);
   const [noteIndex, setNoteIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [message, setMessage] = useState("");
-  const [controllerMode, setControllerMode] = useState(false);
   const [activeNotes, setActiveNotes] = useState({});
+  const [gameFinished, setGameFinished] = useState(false);
 
-  const currentNotes = notes ? notes.split(',') : JINGLE_BELLS;
+  const currentNotes = notes ? notes.split(',') : JINGLE_BELLS.split(',');
 
-  const handleNoteClick = useCallback(async (note) => {
-    if (!gameStarted) {
-      setMessage("Start the game first!");
-      return;
-    }
-  
-    const correctNote = currentNotes[noteIndex];
-  
-    // Optimistically update the UI first
-    if (note === correctNote) {
-      setNoteIndex((prev) => prev + 1);
-      setScore((prev) => prev + 1);
-      setMessage("Correct!");
-  
-      if (noteIndex + 1 >= currentNotes.length) {
-        setGameStarted(false);
-        setMessage("Congratulations! You played the song!");
-      }
-    } else {
-      setMessage(`Wrong note! Expected "${correctNote}". Try again.`);
-    }
-  
+  // Create a mapping from key codes to notes
+  const keyToNoteMap = {};
+  NOTES.forEach(({ note, ascii }) => {
+    keyToNoteMap[ascii] = note;
+  });
+
+  // Handle sending note to backend
+  const sendNoteToBackend = async (note) => {
     try {
-      // Send note asynchronously
       const response = fetch("http://localhost:5000/send-note", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -95,17 +83,86 @@ const GameController = () => {
       console.error("Error communicating with backend:", error);
       setMessage("Failed to send note. Check connection.");
     }
-  }, [gameStarted, noteIndex, currentNotes]);
-  
-  
-  
+  };
 
+  // Handle note clicks (from buttons or keyboard)
+  const handleNoteClick = useCallback(async (note) => {
+    if (!gameStarted) {
+      setMessage("Start the game first!");
+      return;
+    }
+  
+    const correctNote = currentNotes[noteIndex];
+  
+    // Highlight the pressed note
+    setActiveNotes(prev => ({ ...prev, [note]: true }));
+    setTimeout(() => {
+      setActiveNotes(prev => ({ ...prev, [note]: false }));
+    }, 200); // Remove highlight after 200ms
+
+    // Optimistically update the UI first
+    if (note === correctNote) {
+      setNoteIndex((prev) => prev + 1);
+      setScore((prev) => prev + 1);
+      setMessage("Correct!");
+
+      // Check if the game is finished
+      if (noteIndex + 1 >= currentNotes.length) {
+        setGameStarted(false);
+        setGameFinished(true);
+        setMessage("Congratulations! You played the song!");
+      }
+    } else {
+      setMessage(`Wrong note! Expected "${correctNote}". Try again.`);
+    }
+
+    // Send the clicked note to the backend regardless (for buzzer feedback)
+    await sendNoteToBackend(note);
+  }, [gameStarted, noteIndex, currentNotes]);
+
+  // Start the game
   const startGame = () => {
     setGameStarted(true);
+    setGameFinished(false);
     setNoteIndex(0);
     setScore(0);
     setMessage(`Follow the sequence to play ${musicName || 'the song'}!`);
   };
+
+  // Playback the song
+  const playBackSong = async () => {
+    // Play all notes from currentNotes in sequence with a delay
+    for (let i = 0; i < currentNotes.length; i++) {
+      const note = currentNotes[i];
+      await sendNoteToBackend(note);
+      setMessage(`Playing note: ${note}`);
+      await new Promise(resolve => setTimeout(resolve, 600)); // small delay between notes
+    }
+    setMessage("Song playback complete!");
+  };
+
+  // Handle keydown events
+  const handleKeyDown = useCallback(async (event) => {
+    const note = keyToNoteMap[event.keyCode];
+    if (note) {
+      event.preventDefault(); // Prevent default behavior for mapped keys
+      await handleNoteClick(note);
+    }
+  }, [handleNoteClick, keyToNoteMap]);
+
+  // Add and clean up event listeners
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleKeyDown]);
+
+  // Optional: Log location.state for debugging
+  useEffect(() => {
+    console.log(location.state);
+  }, [location.state]);
 
   return (
     <Container maxWidth="md">
@@ -121,7 +178,7 @@ const GameController = () => {
           </Box>
 
           <Typography variant="subtitle1" gutterBottom>
-            Uploaded by: {uploaderName || "Unknown"}
+            Enjoy the Game!
           </Typography>
 
           <Box my={2}>
@@ -149,7 +206,7 @@ const GameController = () => {
                   variant="outlined"
                   onClick={() => handleNoteClick(note)}
                   isActive={activeNotes[note]}
-                  isCurrent={gameStarted && note === currentNotes[noteIndex]} // Highlight the current note
+                  isCurrent={gameStarted && note === currentNotes[noteIndex]} 
                 >
                   {note} <br />
                   Key: {String.fromCharCode(ascii)}
@@ -165,6 +222,15 @@ const GameController = () => {
               </Typography>
             </Box>
           )}
+
+          {/* If the game is finished, show a playback button */}
+          {gameFinished && (
+            <Box mt={2}>
+              <Button variant="contained" color="info" onClick={playBackSong}>
+                Play Back Song
+              </Button>
+            </Box>
+          )}
         </Box>
       </StyledPaper>
 
@@ -172,8 +238,11 @@ const GameController = () => {
         open={!!message} 
         autoHideDuration={6000} 
         onClose={() => setMessage("")}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert severity="info">{message}</Alert>
+        <Alert onClose={() => setMessage("")} severity="info" sx={{ width: '100%' }}>
+          {message}
+        </Alert>
       </Snackbar>
     </Container>
   );

@@ -181,24 +181,16 @@ const HomePage = () => {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Melody Gamification
           </Typography>
-          <Search>
-            <SearchIconWrapper>
-              <SearchIcon />
-            </SearchIconWrapper>
-            <StyledInputBase
-              placeholder="Search games…"
-              inputProps={{ "aria-label": "search" }}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </Search>
           <Box sx={{ display: "flex", alignItems: "center", ml: 2 }}>
             <Typography variant="body1" sx={{ mr: 2 }}>
               {getUsername()}
             </Typography>
             <Avatar alt={getUsername()} src={user?.photoURL} />
           </Box>
+          {/* Logout Button that asks for confirmation */}
+        <Button color="inherit" onClick={() => auth.signOut()}>Logout</Button>
         </Toolbar>
+        
       </NavBar>
       
       <MainContent>
@@ -211,7 +203,7 @@ const HomePage = () => {
           </Typography>
           
           <Typography variant="h5" component="h2" gutterBottom>
-            Your Compositions:
+            Composed Games:
           </Typography>
           <StyledMasonry
             breakpointCols={breakpointColumnsObj}
