@@ -21,9 +21,15 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
   color: theme.palette.text.secondary,
 }));
 
-const NoteButton = styled(Button)(({ theme }) => ({
+const NoteButton = styled(Button)(({ theme, isActive }) => ({
   margin: theme.spacing(1),
   minWidth: '60px',
+  transition: 'transform 0.2s, box-shadow 0.2s',
+  ...(isActive && {
+    transform: 'scale(1.1)',
+    boxShadow: `0 0 10px ${theme.palette.primary.main}`,
+    backgroundColor: theme.palette.primary.light,
+  }),
 }));
 
 const GameController = () => {
@@ -41,18 +47,37 @@ const GameController = () => {
   const [message, setMessage] = useState("");
   const [autoPlayEnabled, setAutoPlayEnabled] = useState(false);
   const [controllerMode, setControllerMode] = useState(false);
-
+  const [activeNotes, setActiveNotes] = useState({});
   useEffect(() => {
     const handleKeyDown = (event) => {
       const note = NOTES.find(n => n.ascii === event.keyCode);
-      if (note && gameStarted && !controllerMode) {
-        handleNoteClick(note.note);
+      if (note) {
+        setActiveNotes(prev => ({
+          ...prev,
+          [note.note]: true
+        }));
+        
+        if (gameStarted && !controllerMode) {
+          handleNoteClick(note.note);
+        }
+      }
+    };
+    const handleKeyUp = (event) => {
+      const note = NOTES.find(n => n.ascii === event.keyCode);
+      if (note) {
+        setActiveNotes(prev => ({
+          ...prev,
+          [note.note]: false
+        }));
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
     };
   }, [gameStarted, noteIndex, score, message, autoPlayEnabled, controllerMode]);
 
@@ -210,18 +235,21 @@ const GameController = () => {
         </Box>
 
         <Grid container spacing={2} justifyContent="center">
-          {NOTES.map(({ note, ascii }) => (
-            <Grid item key={note}>
-              <NoteButton
-                variant="outlined"
-                onClick={() => handleNoteClick(note)}
-                disabled={!gameStarted || controllerMode}
-              >
-                {note} <br /> (ASCII: {ascii})
-              </NoteButton>
-            </Grid>
-          ))}
+      {NOTES.map(({ note, ascii }) => (
+        <Grid item key={note}>
+          <NoteButton
+            variant="outlined"
+            onClick={() => handleNoteClick(note)}
+            disabled={!gameStarted || controllerMode}
+            isActive={activeNotes[note]}
+          >
+            {note} <br /> 
+            (ASCII: {ascii}) <br />
+            Key: {String.fromCharCode(ascii)}
+          </NoteButton>
         </Grid>
+      ))}
+    </Grid>
 
         {controllerMode && (
           <Box mt={2}>
