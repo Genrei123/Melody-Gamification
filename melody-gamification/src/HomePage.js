@@ -121,6 +121,9 @@ const HomePage: React.FC = () => {
   const [user, loading, error] = useAuthState(auth);
   const [searchTerm, setSearchTerm] = useState("");
 
+  const handleCreateComposition = () => {
+    navigate('/create-composition');
+  };
   // Sample data for games
   const games = [
     { id: 1, musicName: "Jingle Bells", uploaderName: "Alice", difficulty: "Easy" },
@@ -173,6 +176,9 @@ const HomePage: React.FC = () => {
     <>
       <NavBar>
         <Toolbar>
+        <IconButton color="inherit" aria-label="add game" onClick={handleCreateComposition}>
+            <AddIcon />
+          </IconButton>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Melody Gamification
           </Typography>
@@ -207,6 +213,16 @@ const HomePage: React.FC = () => {
           <Typography variant="subtitle1" gutterBottom>
             Choose a game to play or create your own!
           </Typography>
+          <Box my={2}>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<AddIcon />}
+              onClick={handleCreateComposition}
+            >
+              Create New Composition
+            </Button>
+          </Box>
           <StyledMasonry
             breakpointCols={breakpointColumnsObj}
             className="my-masonry-grid"

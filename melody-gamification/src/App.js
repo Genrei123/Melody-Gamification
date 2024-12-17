@@ -10,10 +10,10 @@ import ProtectedRoute from './ProtectedRoute';
 import { auth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { GameProvider } from './GameContext';
-
+import CreateComposition from './CreateComposition';
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const navigate = useNavigate(); // Initialize navigate here
+  const navigate = useNavigate();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -22,14 +22,13 @@ const App = () => {
     return () => unsubscribe();
   }, []);
 
-  const switchToSignup = () => {
-    // Navigate to the signup page
+ const switchToSignup = () => {
     navigate('/signup');
   };
 
   const handleLogin = () => {
-    setIsAuthenticated(true); // Update the authentication state
-    navigate('/'); // Redirect to the home page after login
+    setIsAuthenticated(true);
+    navigate('/');
   };
 
   return (
@@ -48,6 +47,14 @@ const App = () => {
           element={
             <ProtectedRoute isAuthenticated={isAuthenticated}>
               <GameController />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/create-composition"
+          element={
+            <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <CreateComposition />
             </ProtectedRoute>
           }
         />

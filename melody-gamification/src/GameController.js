@@ -11,7 +11,9 @@ import {
   Box,
   Snackbar,
   Alert,
+  IconButton,
 } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'; // Import back icon
 import { styled } from '@mui/material/styles';
 import { JINGLE_BELLS, NOTES } from './constants';
 
@@ -80,6 +82,24 @@ const GameController = () => {
       window.removeEventListener('keyup', handleKeyUp);
     };
   }, [gameStarted, noteIndex, score, message, autoPlayEnabled, controllerMode]);
+
+  const handleBackToHomepage = () => {
+    // Optional: Add a confirmation dialog if game is in progress
+    const confirmLeave = window.confirm(
+      "Are you sure you want to leave the game? Your progress will be lost."
+    );
+    
+    if (confirmLeave) {
+      // Reset game state
+      setGameStarted(false);
+      setNoteIndex(0);
+      setScore(0);
+      setMessage("");
+      
+      // Navigate back to homepage
+      navigate('/');
+    }
+  };
 
   const connectToGizduino = async () => {
     if ("serial" in navigator) {
@@ -206,66 +226,134 @@ const GameController = () => {
   return (
     <Container maxWidth="md">
       <StyledPaper elevation={3}>
-        <Typography variant="h4" gutterBottom>{musicName}</Typography>
-        <Typography variant="subtitle1" gutterBottom>Uploaded by: {uploaderName}</Typography>
-        
-        <Box my={2}>
-          <Button variant="contained" color="primary" onClick={connectToGizduino} disabled={!!port} sx={{ m: 1 }}>
-            Connect to Gizduino
-          </Button>
-          <Button variant="contained" color="secondary" onClick={disconnectFromGizduino} disabled={!port} sx={{ m: 1 }}>
-            Disconnect
-          </Button>
-          <Button variant="contained" color="success" onClick={startGame} disabled={gameStarted} sx={{ m: 1 }}>
-            Start Game
-          </Button>
-          <Button variant="contained" color="info" onClick={autoPlaySong} disabled={!autoPlayEnabled || gameStarted} sx={{ m: 1 }}>
-            Auto-Play Jingle Bells
-          </Button>
-          <Button variant="contained" color="error" onClick={handleLogout} sx={{ m: 1 }}>
-            Logout
-          </Button>
-          <Button variant="contained" color="warning" onClick={toggleControllerMode} sx={{ m: 1 }}>
-            {controllerMode ? "Disable Controller Mode" : "Enable Controller Mode"}
-          </Button>
-        </Box>
-
-        <Box my={2}>
-          <Typography variant="h6">Score: {score} / {JINGLE_BELLS.length}</Typography>
-        </Box>
-
-        <Grid container spacing={2} justifyContent="center">
-      {NOTES.map(({ note, ascii }) => (
-        <Grid item key={note}>
-          <NoteButton
-            variant="outlined"
-            onClick={() => handleNoteClick(note)}
-            disabled={!gameStarted || controllerMode}
-            isActive={activeNotes[note]}
-          >
-            {note} <br /> 
-            (ASCII: {ascii}) <br />
-            Key: {String.fromCharCode(ascii)}
-          </NoteButton>
-        </Grid>
-      ))}
-    </Grid>
-
-        {controllerMode && (
-          <Box mt={2}>
-            <Typography variant="body1">Controller Mode Activated. Awaiting input from controller...</Typography>
+        <Box display="flex" flexDirection="column">
+          {/* Back button and title */}
+          <Box display="flex" alignItems="center" mb={2}>
+            <IconButton 
+              color="primary" 
+              onClick={handleBackToHomepage}
+              sx={{ mr: 2 }}
+            >
+              <ArrowBackIcon />
+            </IconButton>
+            <Typography variant="h4" gutterBottom>
+              {musicName}
+            </Typography>
           </Box>
-        )}
+  
+          <Typography variant="subtitle1" gutterBottom>
+            Uploaded by: {uploaderName}
+          </Typography>
+          
+          {/* Buttons Container */}
+          <Box my={2}>
+            <Button 
+              variant="contained" 
+              color="primary" 
+              onClick={connectToGizduino} 
+              disabled={!!port} 
+              sx={{ m: 1 }}
+            >
+              Connect to Gizduino
+            </Button>
+            <Button 
+              variant="contained" 
+              color="secondary" 
+              onClick={disconnectFromGizduino} 
+              disabled={!port} 
+              sx={{ m: 1 }}
+            >
+              Disconnect
+            </Button>
+            <Button 
+              variant="contained" 
+              color="success" 
+              onClick={startGame} 
+              disabled={gameStarted} 
+              sx={{ m: 1 }}
+            >
+              Start Game
+            </Button>
+            <Button 
+              variant="contained" 
+              color="info" 
+              onClick={autoPlaySong} 
+              disabled={!autoPlayEnabled || gameStarted} 
+              sx={{ m: 1 }}
+            >
+              Auto-Play Jingle Bells
+            </Button>
+            <Button 
+              variant="contained" 
+              color="error" 
+              onClick={handleLogout} 
+              sx={{ m: 1 }}
+            >
+              Logout
+            </Button>
+            <Button 
+              variant="contained" 
+              color="warning" 
+              onClick={toggleControllerMode} 
+              sx={{ m: 1 }}
+            >
+              {controllerMode 
+                ? "Disable Controller Mode" 
+                : "Enable Controller Mode"}
+            </Button>
+          </Box>
+  
+          {/* Score Display */}
+          <Box my={2}>
+            <Typography variant="h6">
+              Score: {score} / {JINGLE_BELLS.length}
+            </Typography>
+          </Box>
+  
+          {/* Notes Grid */}
+          <Grid container spacing={2} justifyContent="center">
+            {NOTES.map(({ note, ascii }) => (
+              <Grid item key={note}>
+                <NoteButton
+                  variant="outlined"
+                  onClick={() => handleNoteClick(note)}
+                  disabled={!gameStarted || controllerMode}
+                  isActive={activeNotes[note]}
+                >
+                  {note} <br /> 
+                  (ASCII: {ascii}) <br />
+                  Key: {String.fromCharCode(ascii)}
+                </NoteButton>
+              </Grid>
+            ))}
+          </Grid>
+  
+          {/* Controller Mode Message */}
+          {controllerMode && (
+            <Box mt={2}>
+              <Typography variant="body1">
+                Controller Mode Activated. Awaiting input from controller...
+              </Typography>
+            </Box>
+          )}
+        </Box>
       </StyledPaper>
-
-      <Snackbar open={!!message} autoHideDuration={6000} onClose={() => setMessage("")}>
-        <Alert onClose={() => setMessage("")} severity="info" sx={{ width: '100%' }}>
+  
+      <Snackbar 
+        open={!!message} 
+        autoHideDuration={6000} 
+        onClose={() => setMessage("")}
+      >
+        <Alert 
+          onClose={() => setMessage("")} 
+          severity="info" 
+          sx={{ width: '100%' }}
+        >
           {message}
         </Alert>
       </Snackbar>
     </Container>
   );
-};
-
+}
 export default GameController;
 
