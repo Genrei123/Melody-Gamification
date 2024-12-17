@@ -10,7 +10,7 @@ const useFetchCompositions = () => {
   useEffect(() => {
     const fetchCompositions = async () => {
       try {
-        const response = await axios.get('http://localhost/melody-backend/fetch_compositions.php');
+        const response = await axios.get('https://aliceblue-marten-295174.hostingersite.com/fetch_compositions.php');
         setCompositions(response.data);
       } catch (error) {
         setError(error);
