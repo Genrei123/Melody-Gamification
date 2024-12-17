@@ -19,6 +19,8 @@
     "react-masonry-css": "^1.0.16",
     "react-router-dom": "^7.0.2",
     "react-scripts": "^5.0.1",
+    "react-toastify": "^11.0.0",
+    "ui": "github:shadcn/ui",
     "web-vitals": "^2.1.4"
   },
   "scripts": {

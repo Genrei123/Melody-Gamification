@@ -1,10 +1,8 @@
-// src/HomePage.js
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "./firebase";
 import useFetchCompositions from './useFetchCompositions';
-import Masonry from "react-masonry-css";
 import {
   Container,
   Typography,
@@ -14,115 +12,20 @@ import {
   Alert,
   Box,
   Avatar,
-  InputBase,
-  IconButton,
   Button,
   Card,
   CardContent,
   CardActions,
+  Grid,
+  IconButton,
+  CssBaseline
 } from "@mui/material";
-import { styled, alpha } from "@mui/material/styles";
-import { 
-  Search as SearchIcon, 
-  Add as AddIcon, 
-  PlayArrow as PlayArrowIcon 
-} from "@mui/icons-material";
-
-const StyledContainer = styled(Container)(({ theme }) => ({
-  marginTop: theme.spacing(4),
-  marginBottom: theme.spacing(4),
-}));
-
-const LoadingContainer = styled(Box)(({ theme }) => ({
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  height: "100vh",
-}));
-
-const NavBar = styled(AppBar)(({ theme }) => ({
-  position: "fixed",
-  top: 0,
-  left: 0,
-  right: 0,
-  zIndex: 1100,
-}));
-
-const MainContent = styled(Box)(({ theme }) => ({
-  marginTop: `calc(64px + ${theme.spacing(4)})`, 
-  padding: theme.spacing(2),
-}));
-
-const StyledCard = styled(Card)(({ theme }) => ({
-  height: "100%",
-  display: "flex",
-  flexDirection: "column",
-  transition: "transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out",
-  "&:hover": {
-    transform: "scale(1.05)",
-    boxShadow: theme.shadows[10],
-  },
-}));
-
-const PlayButton = styled(Button)(({ theme }) => ({
-  transition: "all 0.3s ease",
-  "&:hover": {
-    transform: "scale(1.1)",
-    boxShadow: `0 0 15px ${theme.palette.primary.main}`,
-    backgroundColor: theme.palette.primary.light,
-  },
-}));
-
-const Search = styled("div")(({ theme }) => ({
-  position: "relative",
-  borderRadius: theme.shape.borderRadius,
-  backgroundColor: alpha(theme.palette.common.white, 0.15),
-  "&:hover": {
-    backgroundColor: alpha(theme.palette.common.white, 0.25),
-  },
-  marginRight: theme.spacing(2),
-  marginLeft: 0,
-  width: "100%",
-  [theme.breakpoints.up("sm")]: {
-    marginLeft: theme.spacing(3),
-    width: "auto",
-  },
-}));
-
-const SearchIconWrapper = styled("div")(({ theme }) => ({
-  padding: theme.spacing(0, 2),
-  height: "100%",
-  position: "absolute",
-  pointerEvents: "none",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-}));
-
-const StyledInputBase = styled(InputBase)(({ theme }) => ({
-  color: "inherit",
-  "& .MuiInputBase-input": {
-    padding: theme.spacing(1, 1, 1, 0),
-    paddingLeft: `calc(1em + ${theme.spacing(4)})`,
-    transition: theme.transitions.create("width"),
-    width: "100%",
-    [theme.breakpoints.up("md")]: {
-      width: "20ch",
-    },
-  },
-}));
-
-const StyledMasonry = styled(Masonry)(({ theme }) => ({
-  display: "flex",
-  marginLeft: theme.spacing(-2),
-  width: "auto",
-}));
+import { Add as AddIcon, PlayArrow as PlayArrowIcon } from "@mui/icons-material";
 
 const HomePage = () => {
   const navigate = useNavigate();
   const [user, loading, error] = useAuthState(auth);
   const { compositions, loading: loadingCompositions, error: fetchError } = useFetchCompositions();
-  const [searchTerm, setSearchTerm] = useState("");
 
   const handleCreateComposition = () => {
     navigate('/create-composition');
@@ -134,86 +37,74 @@ const HomePage = () => {
     } else if (user?.email) {
       return user.email.split("@")[0];
     } else {
-      return "User ";
+      return "User";
     }
   };
 
-  const handleGamePlay = (gameId, notes) => {
-    navigate(`/game/${gameId}`, { 
+  const handleGamePlay = (composition) => {
+    navigate(`/game/${composition.id}`, { 
       state: { 
-        musicName: gameId.composition_name, 
-        uploaderName: gameId.user_email, 
-        notes: notes 
+        musicName: composition.composition_name, 
+        uploaderName: composition.user_email, 
+        notes: composition.notes 
       } 
     });
   };
 
-  const breakpointColumnsObj = {
-    default: 4,
-    1100: 3,
-    700: 2,
-    500: 1,
-  };
-
   if (loading || loadingCompositions) {
     return (
-      <LoadingContainer>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
         <CircularProgress />
-      </LoadingContainer>
+      </Box>
     );
   }
 
   if (error || fetchError) {
     return (
-      <StyledContainer>
-        <Alert severity="error">Error: {error?.message || fetchError.message}</Alert>
-      </StyledContainer>
+      <Container maxWidth="sm">
+        <Alert severity="error" sx={{ mt: 4 }}>Error: {error?.message || fetchError?.message}</Alert>
+      </Container>
     );
   }
 
   return (
     <>
-      <NavBar>
+      <CssBaseline />
+      <AppBar position="static">
         <Toolbar>
-          <IconButton color="inherit" aria-label="add game" onClick={handleCreateComposition}>
+          <IconButton color="inherit" aria-label="add game" onClick={handleCreateComposition} edge="start" sx={{ mr: 2 }}>
             <AddIcon />
           </IconButton>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Melody Gamification
           </Typography>
-          <Box sx={{ display: "flex", alignItems: "center", ml: 2 }}>
+          <Box sx={{ display: "flex", alignItems: "center" }}>
             <Typography variant="body1" sx={{ mr: 2 }}>
               {getUsername()}
             </Typography>
             <Avatar alt={getUsername()} src={user?.photoURL} />
           </Box>
-          {/* Logout Button that asks for confirmation */}
-        <Button color="inherit" onClick={() => auth.signOut()}>Logout</Button>
+          <Button color="inherit" onClick={() => auth.signOut()} sx={{ ml: 2 }}>Logout</Button>
         </Toolbar>
-        
-      </NavBar>
+      </AppBar>
       
-      <MainContent>
-        <StyledContainer>
-          <Typography variant="h4" component="h1" gutterBottom>
-            Welcome, {getUsername()}!
-          </Typography>
-          <Typography variant="subtitle1" gutterBottom>
-            Choose a game to play or create your own!
-          </Typography>
-          
-          <Typography variant="h5" component="h2" gutterBottom>
-            Composed Games:
-          </Typography>
-          <StyledMasonry
-            breakpointCols={breakpointColumnsObj}
-            className="my-masonry-grid"
-            columnClassName="my-masonry-grid_column"
-          >
-            {compositions.length > 0 ? (
-              compositions.map((composition) => (
-                <StyledCard key={composition.id}>
-                  <CardContent>
+      <Container component="main" maxWidth="lg" sx={{ mt: 4 }}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          Welcome, {getUsername()}!
+        </Typography>
+        <Typography variant="subtitle1" gutterBottom>
+          Choose a game to play or create your own!
+        </Typography>
+        
+        <Typography variant="h5" component="h2" gutterBottom sx={{ mt: 4 }}>
+          Composed Games:
+        </Typography>
+        <Grid container spacing={3}>
+          {compositions.length > 0 ? (
+            compositions.map((composition) => (
+              <Grid item xs={12} sm={6} md={4} lg={3} key={composition.id}>
+                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                  <CardContent sx={{ flexGrow: 1 }}>
                     <Typography variant="h6" component="div">
                       {composition.composition_name}
                     </Typography>
@@ -222,27 +113,31 @@ const HomePage = () => {
                     </Typography>
                   </CardContent>
                   <CardActions>
-                    <PlayButton 
+                    <Button 
                       variant="contained" 
                       color="primary" 
                       startIcon={<PlayArrowIcon />}
-                      onClick={() => handleGamePlay(composition, composition.notes)}
+                      onClick={() => handleGamePlay(composition)}
+                      fullWidth
                     >
                       Play
-                    </PlayButton>
-                    </CardActions>
-                </StyledCard>
-              ))
-            ) : (
+                    </Button>
+                  </CardActions>
+                </Card>
+              </Grid>
+            ))
+          ) : (
+            <Grid item xs={12}>
               <Typography variant="body1" color="text.secondary">
                 No compositions found. Create your first composition!
               </Typography>
-            )}
-          </StyledMasonry>
-        </StyledContainer>
-      </MainContent>
+            </Grid>
+          )}
+        </Grid>
+      </Container>
     </>
   );
 };
 
 export default HomePage;
+

@@ -11,6 +11,11 @@ import { auth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { GameProvider } from './GameContext';
 import CreateComposition from './CreateComposition';
+import VerifyEmail from './VerifyEmail';
+import ResendVerification from './ResendVerification';
+import { ToastContainer } from 'react-toastify'; // Import ToastContainer
+import 'react-toastify/dist/ReactToastify.css'; // Import Toastify CSS
+
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const navigate = useNavigate();
@@ -22,7 +27,7 @@ const App = () => {
     return () => unsubscribe();
   }, []);
 
- const switchToSignup = () => {
+  const switchToSignup = () => {
     navigate('/signup');
   };
 
@@ -37,7 +42,7 @@ const App = () => {
         <Route
           path="/"
           element={
-            <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <ProtectedRoute>
               <HomePage />
             </ProtectedRoute>
           }
@@ -45,7 +50,7 @@ const App = () => {
         <Route
           path="/game/:gameId"
           element={
-            <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <ProtectedRoute>
               <GameController />
             </ProtectedRoute>
           }
@@ -53,7 +58,7 @@ const App = () => {
         <Route
           path="/create-composition"
           element={
-            <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <ProtectedRoute>
               <CreateComposition />
             </ProtectedRoute>
           }
@@ -70,12 +75,25 @@ const App = () => {
             isAuthenticated ? <Navigate to="/" /> : <Signup />
           }
         />
+        <Route
+          path="/verify-email"
+          element={
+            isAuthenticated ? <Navigate to="/" /> : <VerifyEmail />
+          }
+        />
+        <Route
+          path="/resend-verification"
+          element={
+            isAuthenticated ? <Navigate to="/" /> : <ResendVerification />
+          }
+        />
         {/* Redirect any unknown routes to home or login */}
         <Route
           path="*"
           element={<Navigate to={isAuthenticated ? "/" : "/login"} replace />}
         />
       </Routes>
+      <ToastContainer /> {/* Add ToastContainer here */}
     </GameProvider>
   );
 };
