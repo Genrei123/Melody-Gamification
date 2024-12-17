@@ -23,7 +23,7 @@ import MusicNoteIcon from '@mui/icons-material/MusicNote';
 import { NOTES } from './constants';
 import { auth } from './firebase';
 import axios from 'axios';
-
+const BACKEND_URL = 'http://localhost/melody-backend/save_compositions.php';
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(3),
   textAlign: 'center',
@@ -67,75 +67,45 @@ const CreateComposition = () => {
 
 // In CreateComposition.js, modify the axios call
 const handleSaveComposition = async () => {
-    try {
-      // Try multiple URLs
-      const possibleUrls = [
-        'http://localhost:8080/melody-backend/save_compositions.php'
-      ];
-  
-      let successfulUrl = null;
-  
-      for (const url of possibleUrls) {
-        try {
-          console.log(`Trying URL: ${url}`);
-          
-          const response = await axios.post(
-            url, 
-            {
-              compositionName,
-              composition: composition.join(','),
-              userEmail: currentUser.email
-            },
-            {
-              headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Accept': 'application/json'
-              },
-              timeout: 5000,
-              transformRequest: [function (data) {
-                return Object.keys(data).map(key => 
-                  `${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`
-                ).join('&');
-              }]
-            }
-          );
-  
-          console.log('Successful URL:', url);
-          console.log('Full Server Response:', response);
-          successfulUrl = url;
-          break;
-        } catch (urlError) {
-          console.error(`Error with URL ${url}:`, urlError.message);
+  try {
+    const response = await axios.post(
+      BACKEND_URL, // Use the defined URL here
+      {
+        compositionName,
+        composition: composition.join(','),
+        userEmail: currentUser.email
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         }
       }
-  
-      if (!successfulUrl) {
-        throw new Error('Could not connect to any backend URL');
-      }
-  
-    } catch (error) {
-      console.error('FULL ERROR DETAILS:', {
-        message: error.message,
-        name: error.name,
-        code: error.code,
-        config: error.config
-      });
-  
-      // Detailed error logging
-      if (error.response) {
-        console.error('Response Error:', {
-          data: error.response.data,
-          status: error.response.status,
-          headers: error.response.headers
-        });
-      } else if (error.request) {
-        console.error('Request Error:', error.request);
-      }
-  
-      setMessage(`Connection Error: ${error.message}`);
+    );
+
+    // Handle successful response
+    if (response.data.status === 'success') {
+      setMessage('Composition saved successfully!');
+      setSeverity('success');
+      
+      // Optional: You might want to do something with the new composition ID
+      console.log('New Composition ID:', response.data.compositionId);
+    } else {
+      setMessage(response.data.message || 'Error saving composition');
       setSeverity('error');
     }
-  };
+  } catch (error) {
+    console.error('FULL ERROR DETAILS:', {
+      message: error.message,
+      name: error.name,
+      code: error.code,
+      config: error.config
+    });
+
+    setMessage(`Connection Error: ${error.message}`);
+    setSeverity('error');
+  }
+};
 
   return (
     <Container maxWidth="md">
