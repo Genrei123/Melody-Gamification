@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { auth } from './firebase';
 import { signOut } from 'firebase/auth';
@@ -7,39 +7,36 @@ import {
   Typography, 
   Button, 
   Grid, 
-  Paper, 
   Box,
   Snackbar,
   Alert,
   IconButton,
 } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack'; // Import back icon
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { styled } from '@mui/material/styles';
 import { JINGLE_BELLS, NOTES } from './constants';
 
-const StyledPaper = styled(Paper)(({ theme }) => ({
+// Add styled components here
+const StyledPaper = styled('div')(({ theme }) => ({
   padding: theme.spacing(3),
   textAlign: 'center',
-  color: theme.palette.text.secondary,
+  marginTop: theme.spacing(4),
 }));
 
-const NoteButton = styled(Button)(({ theme, isActive }) => ({
+const NoteButton = styled(Button, {
+  shouldForwardProp: (prop) => prop !== 'isActive'
+})(({ theme, isActive }) => ({
+  backgroundColor: isActive ? theme.palette.primary.light : 'inherit',
   margin: theme.spacing(1),
-  minWidth: '60px',
-  transition: 'transform 0.2s, box-shadow 0.2s',
-  ...(isActive && {
-    transform: 'scale(1.1)',
-    boxShadow: `0 0 10px ${theme.palette.primary.main}`,
-    backgroundColor: theme.palette.primary.light,
-  }),
+  minWidth: '100px',
 }));
 
 const GameController = () => {
-  const { gameId } = useParams();
+  const { gameId } = useParams(); // Keep gameId for potential future use
   const location = useLocation();
   const navigate = useNavigate();
   
-  const { musicName, uploaderName } = location.state || {};
+  const { musicName, uploaderName, notes } = location.state || {};
 
   const [port, setPort] = useState(null);
   const [writer, setWriter] = useState(null);
@@ -50,6 +47,49 @@ const GameController = () => {
   const [autoPlayEnabled, setAutoPlayEnabled] = useState(false);
   const [controllerMode, setControllerMode] = useState(false);
   const [activeNotes, setActiveNotes] = useState({});
+
+  // Use the notes passed from the HomePage instead of JINGLE_BELLS
+  const currentNotes = notes ? notes.split(',') : JINGLE_BELLS;
+
+  // Use useCallback to memoize the handleNoteClick function
+  const handleNoteClick = useCallback((note) => {
+    if (!gameStarted) {
+      setMessage("Start the game first!");
+      return;
+    }
+
+    const correctNote = currentNotes[noteIndex];
+    if (note === correctNote) {
+      sendNote(note);
+      setNoteIndex(prev => prev + 1);
+      setScore(prev => prev + 1);
+      setMessage("Correct!");
+
+      if (noteIndex + 1 >= currentNotes.length) {
+        setGameStarted(false);
+        setMessage("Congratulations! You played the song!");
+        setAutoPlayEnabled(true);
+      }
+    } else {
+      setMessage(`Wrong note! Expected "${correctNote}". Try again.`);
+    }
+  }, [gameStarted, noteIndex, currentNotes]);
+
+  // Add sendNote function definition
+  const sendNote = async (note) => {
+    if (writer) {
+      try {
+        await writer.write(note + "\n");
+        console.log("Sent note:", note);
+      } catch (error) {
+        console.error("Error sending note:", error);
+        setMessage("Failed to send note. See console for details.");
+      }
+    } else {
+      setMessage("Please connect to Gizduino first.");
+    }
+  };
+
   useEffect(() => {
     const handleKeyDown = (event) => {
       const note = NOTES.find(n => n.ascii === event.keyCode);
@@ -81,7 +121,7 @@ const GameController = () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [gameStarted, noteIndex, score, message, autoPlayEnabled, controllerMode]);
+  }, [gameStarted, noteIndex, score, message, autoPlayEnabled, controllerMode, handleNoteClick]);
 
   const handleBackToHomepage = () => {
     // Optional: Add a confirmation dialog if game is in progress
@@ -140,48 +180,11 @@ const GameController = () => {
     }
   };
 
-  const sendNote = async (note) => {
-    if (writer) {
-      try {
-        await writer.write(note + "\n");
-        console.log("Sent note:", note);
-      } catch (error) {
-        console.error("Error sending note:", error);
-        setMessage("Failed to send note. See console for details.");
-      }
-    } else {
-      setMessage("Please connect to Gizduino first.");
-    }
-  };
-
-  const handleNoteClick = (note) => {
-    if (!gameStarted) {
-      setMessage("Start the game first!");
-      return;
-    }
-
-    const correctNote = JINGLE_BELLS[noteIndex];
-    if (note === correctNote) {
-      sendNote(note);
-      setNoteIndex(prev => prev + 1);
-      setScore(prev => prev + 1);
-      setMessage("Correct!");
-
-      if (noteIndex + 1 >= JINGLE_BELLS.length) {
-        setGameStarted(false);
-        setMessage("Congratulations! You played the song!");
-        setAutoPlayEnabled(true);
-      }
-    } else {
-      setMessage(`Wrong note! Expected "${correctNote}". Try again.`);
-    }
-  };
-
   const startGame = () => {
     setGameStarted(true);
     setNoteIndex(0);
     setScore(0);
-    setMessage("Follow the sequence to play Jingle Bells!");
+    setMessage(`Follow the sequence to play ${musicName || 'the song'}!`);
     setAutoPlayEnabled(false);
   };
 
@@ -191,15 +194,15 @@ const GameController = () => {
       return;
     }
 
-    setMessage("Auto-playing Jingle Bells...");
+    setMessage(`Auto-playing ${musicName || 'the song'}...`);
     setGameStarted(false);
 
-    for (const note of JINGLE_BELLS) {
+    for (const note of currentNotes) {
       await sendNote(note);
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
-    setMessage("Jingle Bells auto-play complete!");
+    setMessage(`${musicName || 'Song'} auto-play complete!`);
   };
 
   const handleLogout = async () => {
@@ -237,12 +240,12 @@ const GameController = () => {
               <ArrowBackIcon />
             </IconButton>
             <Typography variant="h4" gutterBottom>
-              {musicName}
+              {musicName || 'Game Controller'}
             </Typography>
           </Box>
-  
+    
           <Typography variant="subtitle1" gutterBottom>
-            Uploaded by: {uploaderName}
+            Uploaded by: {uploaderName || 'Unknown'}
           </Typography>
           
           {/* Buttons Container */}
@@ -281,7 +284,7 @@ const GameController = () => {
               disabled={!autoPlayEnabled || gameStarted} 
               sx={{ m: 1 }}
             >
-              Auto-Play Jingle Bells
+              Auto-Play Song
             </Button>
             <Button 
               variant="contained" 
@@ -302,14 +305,14 @@ const GameController = () => {
                 : "Enable Controller Mode"}
             </Button>
           </Box>
-  
+    
           {/* Score Display */}
           <Box my={2}>
             <Typography variant="h6">
-              Score: {score} / {JINGLE_BELLS.length}
+              Score: {score} / {currentNotes.length}
             </Typography>
           </Box>
-  
+    
           {/* Notes Grid */}
           <Grid container spacing={2} justifyContent="center">
             {NOTES.map(({ note, ascii }) => (
@@ -327,7 +330,7 @@ const GameController = () => {
               </Grid>
             ))}
           </Grid>
-  
+    
           {/* Controller Mode Message */}
           {controllerMode && (
             <Box mt={2}>
@@ -338,16 +341,18 @@ const GameController = () => {
           )}
         </Box>
       </StyledPaper>
-  
+    
       <Snackbar 
         open={!!message} 
         autoHideDuration={6000} 
         onClose={() => setMessage("")}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
         <Alert 
           onClose={() => setMessage("")} 
           severity="info" 
           sx={{ width: '100%' }}
+          variant="filled"
         >
           {message}
         </Alert>

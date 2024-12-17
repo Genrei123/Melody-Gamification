@@ -1,7 +1,9 @@
+// src/HomePage.js
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "./firebase";
+import useFetchCompositions from './useFetchCompositions';
 import Masonry from "react-masonry-css";
 import {
   Container,
@@ -116,37 +118,34 @@ const StyledMasonry = styled(Masonry)(({ theme }) => ({
   width: "auto",
 }));
 
-const HomePage: React.FC = () => {
+const HomePage = () => {
   const navigate = useNavigate();
   const [user, loading, error] = useAuthState(auth);
+  const { compositions, loading: loadingCompositions, error: fetchError } = useFetchCompositions();
   const [searchTerm, setSearchTerm] = useState("");
 
   const handleCreateComposition = () => {
     navigate('/create-composition');
   };
-  // Sample data for games
-  const games = [
-    { id: 1, musicName: "Jingle Bells", uploaderName: "Alice", difficulty: "Easy" },
-    { id: 2, musicName: "Silent Night", uploaderName: "Bob", difficulty: "Medium" },
-    { id: 3, musicName: "Deck the Halls", uploaderName: "Charlie", difficulty: "Hard" },
-    { id: 4, musicName: "Frosty the Snowman", uploaderName: "David", difficulty: "Easy" },
-    { id: 5, musicName: "All I Want for Christmas Is You", uploaderName: "Eve", difficulty: "Medium" },
-    { id: 6, musicName: "Let It Snow", uploaderName: "Frank", difficulty: "Hard" },
-  ];
 
-  const getUsername = (): string => {
+  const getUsername = () => {
     if (user?.displayName) {
       return user.displayName;
     } else if (user?.email) {
       return user.email.split("@")[0];
     } else {
-      return "User";
+      return "User ";
     }
   };
 
-  const handleGamePlay = (gameId: number) => {
-    // Navigate to the specific game page
-    navigate(`/game/${gameId}`);
+  const handleGamePlay = (gameId, notes) => {
+    navigate(`/game/${gameId}`, { 
+      state: { 
+        musicName: gameId.composition_name, 
+        uploaderName: gameId.user_email, 
+        notes: notes 
+      } 
+    });
   };
 
   const breakpointColumnsObj = {
@@ -156,7 +155,7 @@ const HomePage: React.FC = () => {
     500: 1,
   };
 
-  if (loading) {
+  if (loading || loadingCompositions) {
     return (
       <LoadingContainer>
         <CircularProgress />
@@ -164,10 +163,10 @@ const HomePage: React.FC = () => {
     );
   }
 
-  if (error) {
+  if (error || fetchError) {
     return (
       <StyledContainer>
-        <Alert severity="error">Error: {error.message}</Alert>
+        <Alert severity="error">Error: {error?.message || fetchError.message}</Alert>
       </StyledContainer>
     );
   }
@@ -176,7 +175,7 @@ const HomePage: React.FC = () => {
     <>
       <NavBar>
         <Toolbar>
-        <IconButton color="inherit" aria-label="add game" onClick={handleCreateComposition}>
+          <IconButton color="inherit" aria-label="add game" onClick={handleCreateComposition}>
             <AddIcon />
           </IconButton>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
@@ -193,9 +192,6 @@ const HomePage: React.FC = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </Search>
-          <IconButton color="inherit" aria-label="add game">
-            <AddIcon />
-          </IconButton>
           <Box sx={{ display: "flex", alignItems: "center", ml: 2 }}>
             <Typography variant="body1" sx={{ mr: 2 }}>
               {getUsername()}
@@ -213,46 +209,43 @@ const HomePage: React.FC = () => {
           <Typography variant="subtitle1" gutterBottom>
             Choose a game to play or create your own!
           </Typography>
-          <Box my={2}>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<AddIcon />}
-              onClick={handleCreateComposition}
-            >
-              Create New Composition
-            </Button>
-          </Box>
+          
+          <Typography variant="h5" component="h2" gutterBottom>
+            Your Compositions:
+          </Typography>
           <StyledMasonry
             breakpointCols={breakpointColumnsObj}
             className="my-masonry-grid"
             columnClassName="my-masonry-grid_column"
           >
-            {games.map((game) => (
-              <StyledCard key={game.id}>
-                <CardContent>
-                  <Typography variant="h5" component="div">
-                    {game.musicName}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Uploaded by: {game.uploaderName}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Difficulty: {game.difficulty}
-                  </Typography>
-                </CardContent>
-                <CardActions>
-                  <PlayButton 
-                    variant="contained" 
-                    color="primary" 
-                    startIcon={<PlayArrowIcon />}
-                    onClick={() => handleGamePlay(game.id)}
-                  >
-                    Play
-                  </PlayButton>
-                </CardActions>
-              </StyledCard>
-            ))}
+            {compositions.length > 0 ? (
+              compositions.map((composition) => (
+                <StyledCard key={composition.id}>
+                  <CardContent>
+                    <Typography variant="h6" component="div">
+                      {composition.composition_name}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Notes: {composition.notes}
+                    </Typography>
+                  </CardContent>
+                  <CardActions>
+                    <PlayButton 
+                      variant="contained" 
+                      color="primary" 
+                      startIcon={<PlayArrowIcon />}
+                      onClick={() => handleGamePlay(composition, composition.notes)}
+                    >
+                      Play
+                    </PlayButton>
+                    </CardActions>
+                </StyledCard>
+              ))
+            ) : (
+              <Typography variant="body1" color="text.secondary">
+                No compositions found. Create your first composition!
+              </Typography>
+            )}
           </StyledMasonry>
         </StyledContainer>
       </MainContent>

@@ -2,12 +2,12 @@
 import React from "react";
 import { useNavigate } from 'react-router-dom';
 
-const GameCard = ({ musicName, uploaderName, gameId }) => {
+const GameCard = ({ musicName, uploaderName, gameId, notes }) => {
   const navigate = useNavigate();
 
   const handlePlay = () => {
-    // Navigate to GameController with gameId as a parameter
-    navigate(`/game/${gameId}`, { state: { musicName, uploaderName } });
+    // Navigate to GameController with gameId and notes as parameters
+    navigate(`/game/${gameId}`, { state: { musicName, uploaderName, notes } });
   };
 
   return (
